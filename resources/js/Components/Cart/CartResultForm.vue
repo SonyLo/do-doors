@@ -5,9 +5,13 @@
         <h6 class="font-bold d-flex justify-content-between align-items-center mb-2">
 
             <span>
-                Итого цена {{ Math.round(cartTotalPrice * (1 - (discount / 100))) }} ₽ <span
-                v-if="discount>0">(скидка {{ discount }}%)</span>
+                Итого цена {{ cartTotalPriceDiscount }} ₽ 
+                <span v-if="discount>0">(скидка {{ discount }}%)</span>
             </span>
+            <!-- <span>
+                Итого цена {{ Math.round(cartTotalPrice * (1 - (discount / 100))) }} ₽ 
+                <span v-if="discount>0">(скидка {{ discount }}%)</span>
+            </span> -->
 
             <span @click="blocks.price=!blocks.price">
                     <i v-if="!blocks.price"
@@ -415,11 +419,14 @@ export default {
             discount: 0,
             clientForm: null,
             delivery_services: [],
+            cartTotalPriceDiscount:0,
 
         }
     },
     mounted() {
-
+        /////
+        this.updatePriceDiscount();
+        ////
         if (localStorage.getItem("dodoors_cart_checkout_blocks")) {
             const tmp = JSON.parse(localStorage.getItem("dodoors_cart_checkout_blocks"))
             const keysCountOriginal = Object.keys(this.blocks).length || 0
@@ -461,9 +468,20 @@ export default {
 
             this.clientForm.designer.price = (price * this.clientForm.designer.value / 100).toFixed(2)
             return this.clientForm.designer.price
-        }
+        },
+
+       
+
     },
     watch: {
+
+        'discount': {
+            handler(val) {
+                this.updatePriceDiscount();
+                this.changePayedPercent();
+            },
+            deep: true
+        },
 
         'blocks': {
             handler(val) {
@@ -498,6 +516,16 @@ export default {
 
     },
     methods: {
+
+        /////////////
+
+ updatePriceDiscount() {
+    this.cartTotalPriceDiscount = Math.round(this.cartTotalPrice * (1 - this.discount / 100));
+   
+  },
+
+        /////////////
+
         recountPrices() {
 
             const dealerPercent = this.clientForm.dealer_percent || 0
@@ -807,6 +835,8 @@ export default {
             this.clientForm.summary_price_type = item
             this.recountPrices()
             this.changePayedPercent()
+            this.updatePriceDiscount();
+            
         },
         loadServicesByType() {
             this.$store.dispatch("loadServicesByType", {
@@ -851,8 +881,12 @@ export default {
         },
         changePayedPercent() {
             this.clientForm.current_payed = Math.round((
-                this.cartTotalPrice * this.clientForm.payed_percent) / 100)
+                this.cartTotalPriceDiscount * this.clientForm.payed_percent) / 100)
         },
+        // changePayedPercent() {
+        //     this.clientForm.current_payed = Math.round((
+        //         this.cartTotalPrice * this.clientForm.payed_percent) / 100)
+        // },
         selectDeliveryVariant(item) {
             this.clientForm.info = item.title
             this.clientForm.delivery_service = item.title
